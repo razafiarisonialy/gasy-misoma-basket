@@ -59,6 +59,7 @@ export type GameAction =
   | { type: "ADD_PLAYER_SCORE"; side: TeamSide; playerId: string; points: number }
   | { type: "ADD_TEAM_FOUL"; side: TeamSide; delta: number }
   | { type: "ADD_PLAYER_FOUL"; side: TeamSide; playerId: string }
+  | { type: "REMOVE_PLAYER_FOUL"; side: TeamSide; playerId: string }
   | { type: "USE_TIMEOUT"; side: TeamSide }
   | { type: "RESTORE_TIMEOUT"; side: TeamSide }
   | { type: "TOGGLE_POSSESSION" }

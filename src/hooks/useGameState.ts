@@ -1,7 +1,7 @@
 import { useReducer, useCallback, useEffect, useRef } from "react";
 import type { GameState, GameAction, Period, Team } from "@/types";
 import { tickClock } from "@/lib/clock";
-import { QT_DURATION_MS, SHOT_CLOCK_MS } from "@/constants";
+import { QT_DURATION_MS, SHOT_CLOCK_MS, TEAM_FOUL_BONUS_THRESHOLD } from "@/constants";
 import {
   createDefaultTeam,
   getNextPeriod,
@@ -12,7 +12,6 @@ import {
 } from "@/lib/fiba";
 import { send, subscribe } from "@/lib/channel";
 import { saveState, loadState } from "@/lib/storage";
-import defaultLogo from "@/assets/logo.jpg";
 import { playBuzzer } from "@/lib/sound";
 
 function createInitialState(): GameState {
@@ -25,7 +24,7 @@ function createInitialState(): GameState {
     possessionArrow: "home",
     isHalftime: false,
     isFinished: false,
-    organizationLogoUrl: defaultLogo,
+    organizationLogoUrl: "",
   };
 }
 
@@ -166,19 +165,33 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case "ADD_TEAM_FOUL":
       return updateTeamInState(state, action.side, (team) => ({
         ...team,
-        teamFouls: Math.max(0, team.teamFouls + action.delta),
+        teamFouls: Math.min(TEAM_FOUL_BONUS_THRESHOLD, Math.max(0, team.teamFouls + action.delta)),
       }));
 
     case "ADD_PLAYER_FOUL":
       return updateTeamInState(state, action.side, (team) => ({
         ...team,
-        teamFouls: team.teamFouls + 1,
+        teamFouls: Math.min(TEAM_FOUL_BONUS_THRESHOLD, team.teamFouls + 1),
         players: team.players.map((p) =>
           p.id === action.playerId
             ? { ...p, fouls: Math.min(5, p.fouls + 1) }
             : p
         ),
       }));
+
+    case "REMOVE_PLAYER_FOUL": {
+      return updateTeamInState(state, action.side, (team) => {
+        const target = team.players.find((p) => p.id === action.playerId);
+        if (!target || target.fouls === 0) return team;
+        return {
+          ...team,
+          teamFouls: Math.max(0, team.teamFouls - 1),
+          players: team.players.map((p) =>
+            p.id === action.playerId ? { ...p, fouls: p.fouls - 1 } : p
+          ),
+        };
+      });
+    }
 
     case "USE_TIMEOUT":
       return updateTeamInState(state, action.side, (team) => ({
@@ -189,7 +202,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case "RESTORE_TIMEOUT":
       return updateTeamInState(state, action.side, (team) => ({
         ...team,
-        timeoutsLeft: team.timeoutsLeft + 1,
+        timeoutsLeft: Math.min(3, team.timeoutsLeft + 1),
       }));
 
     case "TOGGLE_POSSESSION":
@@ -260,15 +273,22 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         shotClock: { ...state.shotClock, running: false, lastTickAt: null },
       };
 
-    case "TOGGLE_ON_COURT":
-      return updateTeamInState(state, action.side, (team) => ({
-        ...team,
-        players: team.players.map((p) =>
-          p.id === action.playerId ? { ...p, onCourt: !p.onCourt } : p
-        ),
-      }));
+    case "TOGGLE_ON_COURT": {
+      return updateTeamInState(state, action.side, (team) => {
+        const target = team.players.find((p) => p.id === action.playerId);
+        if (!target) return team;
+        if (!target.onCourt && team.players.filter((p) => p.onCourt).length >= 5) return team;
+        return {
+          ...team,
+          players: team.players.map((p) =>
+            p.id === action.playerId ? { ...p, onCourt: !p.onCourt } : p
+          ),
+        };
+      });
+    }
 
     case "ADD_PLAYER":
+      if (state[action.side].players.length >= 12) return state;
       return updateTeamInState(state, action.side, (team) => ({
         ...team,
         players: [...team.players, action.player],

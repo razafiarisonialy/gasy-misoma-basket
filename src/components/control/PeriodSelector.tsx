@@ -18,12 +18,12 @@ export default function PeriodSelector({
   const isTied = homeScore === awayScore;
 
   return (
-    <div className="bg-card text-card-foreground rounded-xl border border-border p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-        Période
+    <div className="h-full min-h-0 bg-card text-card-foreground rounded-xl border border-border p-4 shadow-sm flex flex-col">
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 shrink-0">
+        Période & match
       </h3>
 
-      <div className="flex gap-2 mb-3 flex-wrap">
+      <div className="flex gap-2 mb-3 flex-wrap shrink-0">
         {periods.map((p) => (
           <button
             key={p}
@@ -46,7 +46,7 @@ export default function PeriodSelector({
 
       <button
         onClick={() => dispatch({ type: "NEXT_PERIOD" })}
-        className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors"
+        className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors mt-auto shrink-0"
       >
         QT Suivant →
         {period === 4 && isTied && (

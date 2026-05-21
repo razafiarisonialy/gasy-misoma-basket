@@ -29,7 +29,7 @@ export default function DisplayPage() {
   }, []);
 
   return (
-    <div className="relative">
+    <div className="relative min-h-dvh lg:h-dvh w-full overflow-y-auto lg:overflow-hidden">
       {!audioUnlocked && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-amber-500/10 border border-amber-500/20 backdrop-blur-md px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg shadow-amber-500/10 animate-bounce pointer-events-none">
           <span className="text-amber-400 text-sm">🔊</span>
