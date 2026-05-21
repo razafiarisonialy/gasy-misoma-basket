@@ -45,16 +45,26 @@ export default function ClockPanel({
   };
 
   return (
-    <div className="bg-[--bg-surface] text-[--text-primary] rounded-xl border border-[--border-subtle] p-4 flex flex-col gap-4 shadow-md">
+    <div className="h-full min-h-0 bg-[--bg-surface] text-[--text-primary] rounded-xl border border-[--border-subtle] p-4 flex flex-col gap-4 shadow-md">
       <div className="flex items-center justify-between border-b border-[--border-subtle] pb-2">
         <h3 className="text-xs font-bold text-[--text-secondary] uppercase tracking-wider">
           Chronos — {getPeriodLabel(period as 1 | 2 | 3 | 4 | `OT${number}`)}
         </h3>
+        <button
+          onClick={() => {
+            playBuzzer();
+            send({ type: "PLAY_BUZZER" });
+          }}
+          className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[10px] font-black uppercase tracking-wider transition-all duration-200 active:scale-95 shadow-md flex items-center gap-1.5 cursor-pointer shadow-red-900/10"
+          title="Sonne le buzzer manuel (Raccourci: B)"
+        >
+          🚨 BUZZER (B)
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
         {/* Game Clock Panel */}
-        <div className="flex flex-col gap-2 bg-zinc-950/5 dark:bg-zinc-950/25 p-3 rounded-xl border border-[--border-subtle] justify-between">
+        <div className="flex flex-col gap-2 bg-[--bg-surface-2]/40 p-3 rounded-xl border border-[--border-subtle] justify-between">
           <div className="flex flex-col">
             <span className="text-[10px] text-[--text-secondary] font-bold uppercase tracking-wider">Temps de Jeu</span>
             <div className="flex items-center mt-1.5 min-h-[60px]">
@@ -86,7 +96,7 @@ export default function ClockPanel({
                   </button>
                   <button
                     onClick={() => setEditing(false)}
-                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2 py-1 rounded-md text-xs font-bold transition-all cursor-pointer"
+                    className="bg-muted hover:bg-muted/70 text-foreground px-2 py-1 rounded-md text-xs font-bold transition-all cursor-pointer"
                   >
                     ✕
                   </button>
@@ -122,7 +132,7 @@ export default function ClockPanel({
             </button>
             <button
               onClick={() => dispatch({ type: "RESET_GAME_CLOCK" })}
-              className="h-9 px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700/80 border border-[--border-subtle] text-zinc-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95"
+              className="h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 border border-[--border-subtle] text-foreground font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95"
             >
               ↺ Reset
             </button>
@@ -130,7 +140,7 @@ export default function ClockPanel({
         </div>
 
         {/* Shot Clock Panel */}
-        <div className="flex flex-col gap-2 bg-zinc-950/5 dark:bg-zinc-950/25 p-3 rounded-xl border border-[--border-subtle] justify-between">
+        <div className="flex flex-col gap-2 bg-[--bg-surface-2]/40 p-3 rounded-xl border border-[--border-subtle] justify-between">
           <div className="flex flex-col">
             <span className="text-[10px] text-[--text-secondary] font-bold uppercase tracking-wider">Lancers (Shot)</span>
             <div className="flex items-center gap-3 mt-1.5 min-h-[60px]">
@@ -172,20 +182,6 @@ export default function ClockPanel({
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Manual Buzzer Section: Relocated to the bottom center */}
-      <div className="flex justify-center border-t border-[--border-subtle] pt-3 mt-1">
-        <button
-          onClick={() => {
-            playBuzzer();
-            send({ type: "PLAY_BUZZER" });
-          }}
-          className="w-full h-11 rounded-xl bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 text-white text-xs font-black transition-all duration-200 border border-red-500/10 active:scale-[0.98] shadow-md shadow-red-950/20 flex items-center justify-center gap-2 cursor-pointer uppercase tracking-widest"
-          title="Sonne le buzzer manuel (Raccourci: B)"
-        >
-          <span className="text-sm">🚨</span> BUZZER MANUEL (Raccourci: B)
-        </button>
       </div>
     </div>
   );

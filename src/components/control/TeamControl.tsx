@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { GameAction, Team, TeamSide } from "@/types";
+import { isTeamInBonus } from "@/lib/fiba";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,11 +20,18 @@ const PRESET_COLORS = [
 
 export default function TeamControl({ team, side, dispatch }: TeamControlProps) {
   return (
-    <div className="bg-[--bg-surface] text-[--text-primary] rounded-xl border border-[--border-subtle] p-4 flex flex-col gap-4 shadow-md">
-      <TeamHeader team={team} side={side} dispatch={dispatch} />
-      <ScorePanel team={team} side={side} dispatch={dispatch} />
-      <FoulsAndTimeouts team={team} side={side} dispatch={dispatch} />
-      <PlayerList team={team} side={side} dispatch={dispatch} />
+    <div className="xl:h-full xl:min-h-0 bg-[--bg-surface] text-[--text-primary] rounded-xl border border-[--border-subtle] p-4 flex flex-col sm:grid sm:grid-cols-[1fr_1.6fr] md:grid-cols-[1fr_1.8fr] gap-4 shadow-md xl:overflow-hidden">
+      {/* Left Column: Team Controls Stack */}
+      <div className="flex flex-col gap-3 min-h-0 overflow-y-auto">
+        <TeamHeader team={team} side={side} dispatch={dispatch} />
+        <ScorePanel team={team} side={side} dispatch={dispatch} />
+        <FoulsAndTimeouts team={team} side={side} dispatch={dispatch} />
+      </div>
+      
+      {/* Right Column: Player Roster (Full height) */}
+      <div className="flex flex-col min-h-0 border-t sm:border-t-0 sm:border-l border-[--border-subtle] pt-3 sm:pt-0 sm:pl-4">
+        <PlayerList team={team} side={side} dispatch={dispatch} />
+      </div>
     </div>
   );
 }
@@ -60,30 +68,32 @@ function TeamHeader({
   };
 
   return (
-    <div className="flex items-center justify-between border-b border-[--border-subtle] pb-3">
-      <div 
-        className="flex items-center gap-3 cursor-pointer group"
+    <div className="flex items-center gap-3 border-b border-[--border-subtle] pb-3 shrink-0">
+      <div
+        className="flex items-center gap-3 cursor-pointer group flex-1 min-w-0"
         onClick={() => setEditing(true)}
         title="Modifier l'équipe (nom, couleur, logo)"
       >
-        <div className="relative w-11 h-11 rounded-full border border-[--border-default] bg-zinc-950/20 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:border-primary/50 shadow-inner shrink-0">
+        <div className="relative w-20 h-20 rounded-xl border-2 border-[--border-default] bg-muted/30 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:border-primary/80 shadow-md shrink-0">
           {logoUrl ? (
-            <img src={logoUrl} alt={team.shortName} className="w-full h-full object-contain" />
+            <img src={logoUrl} alt={team.shortName} className="w-full h-full object-contain p-1" />
           ) : (
-            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: team.color }} />
+            <div className="w-7 h-7 rounded-full shadow-sm" style={{ backgroundColor: team.color }} />
           )}
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
-            <span className="text-[8px] text-white font-bold uppercase tracking-wider">Éditer</span>
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+            <span className="text-[10px] text-white font-bold uppercase tracking-wider">Éditer</span>
           </div>
         </div>
-        <div>
+        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
           <h2
-            className="text-base font-bold uppercase tracking-wide transition-colors duration-200"
+            className="text-lg font-black uppercase tracking-wider transition-colors duration-200 leading-tight truncate"
             style={{ color: team.color }}
           >
             {team.name}
           </h2>
-          <span className="text-[10px] text-[--text-secondary] uppercase tracking-widest font-semibold">{team.shortName || "ÉQUIPE"}</span>
+          <span className="text-xs text-[--text-secondary] uppercase tracking-widest font-black bg-[--bg-surface-2] px-2 py-0.5 rounded border border-[--border-subtle] self-start">
+            {team.shortName || "ÉQUIPE"}
+          </span>
         </div>
       </div>
       
@@ -137,7 +147,7 @@ function TeamHeader({
                   <button
                     key={c}
                     type="button"
-                    className="w-6 h-6 rounded-full border border-zinc-300 dark:border-zinc-700 transition-all hover:scale-110 active:scale-95 shadow-sm cursor-pointer"
+                    className="w-6 h-6 rounded-full border border-border transition-all hover:scale-110 active:scale-95 shadow-sm cursor-pointer"
                     style={{ backgroundColor: c }}
                     onClick={() => setColor(c)}
                     title={c}
@@ -175,6 +185,20 @@ function TeamHeader({
                 placeholder="https://..."
               />
             </div>
+            {logoUrl && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <div />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="col-span-3 font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                  onClick={() => setLogoUrl("")}
+                >
+                  🗑️ Supprimer le logo existant
+                </Button>
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditing(false)}>Annuler</Button>
@@ -198,38 +222,31 @@ function ScorePanel({
   return (
     <div className="flex flex-col items-center gap-4 py-2 border-b border-[--border-subtle] pb-4">
       {/* Giant Score Display V2 */}
-      <span className="font-mono text-8xl font-black text-[--text-primary] tracking-tighter select-none tabular-nums">
+      <span className="font-mono text-5xl sm:text-6xl font-black text-[--text-primary] tracking-tighter select-none tabular-nums">
         {team.score.toString().padStart(2, "0")}
       </span>
 
-      {/* Button Controls */}
-      <div className="flex flex-col gap-2.5 w-full">
-        {/* Primary increment buttons (+1, +2, +3) */}
-        <div className="grid grid-cols-3 gap-2 w-full">
-          {[1, 2, 3].map((pts) => (
-            <button
-              key={pts}
-              onClick={() => dispatch({ type: "ADD_SCORE", side, points: pts })}
-              className="h-14 rounded-xl text-white text-lg font-bold transition-all duration-150 active:scale-95 shadow-md shadow-black/10 flex items-center justify-center cursor-pointer"
-              style={{ backgroundColor: team.color }}
-            >
-              +{pts}
-            </button>
-          ))}
-        </div>
-
-        {/* Subtractive action buttons (-1, -2, -3) */}
-        <div className="grid grid-cols-3 gap-2 w-full">
-          {[-1, -2, -3].map((pts) => (
-            <button
-              key={pts}
-              onClick={() => dispatch({ type: "ADD_SCORE", side, points: pts })}
-              className="h-10 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-red-500/10 hover:border-red-500/30 text-zinc-400 hover:text-red-400 text-xs font-semibold transition-all duration-150 active:scale-95 flex items-center justify-center cursor-pointer"
-            >
-              {pts}
-            </button>
-          ))}
-        </div>
+      {/* Boutons score — une seule ligne : +1 +2 -1 -2 */}
+      <div className="grid grid-cols-4 gap-2 w-full">
+        {[1, 2].map((pts) => (
+          <button
+            key={pts}
+            onClick={() => dispatch({ type: "ADD_SCORE", side, points: pts })}
+            className="h-11 rounded-xl text-white drop-shadow-md text-base font-bold transition-all duration-150 active:scale-95 shadow-md shadow-black/10 flex items-center justify-center cursor-pointer"
+            style={{ backgroundColor: team.color }}
+          >
+            +{pts}
+          </button>
+        ))}
+        {[-1, -2].map((pts) => (
+          <button
+            key={pts}
+            onClick={() => dispatch({ type: "ADD_SCORE", side, points: pts })}
+            className="h-11 rounded-xl bg-red-50/80 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-500 dark:hover:text-white text-base font-black transition-all duration-150 active:scale-95 flex items-center justify-center cursor-pointer drop-shadow-md"
+          >
+            {pts}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -244,18 +261,18 @@ function FoulsAndTimeouts({
   side: TeamSide;
   dispatch: (action: GameAction) => void;
 }) {
-  const inBonus = team.teamFouls >= 4;
+  const inBonus = isTeamInBonus(team.teamFouls);
 
   return (
     <div className="grid grid-cols-2 gap-4 py-2 border-b border-[--border-subtle] pb-4">
       {/* Team Fouls Control */}
-      <div className="flex flex-col gap-1 bg-zinc-950/5 dark:bg-zinc-950/20 p-2.5 rounded-xl border border-[--border-subtle]">
+      <div className="flex flex-col gap-1 bg-[--bg-surface-2]/40 p-2.5 rounded-xl border border-[--border-subtle]">
         <span className="text-[10px] text-[--text-secondary] font-bold uppercase tracking-wider">Fautes Équipe</span>
         <div className="flex items-center justify-between mt-1">
           <div className="flex items-center gap-1">
             <button
               onClick={() => dispatch({ type: "ADD_TEAM_FOUL", side, delta: -1 })}
-              className="w-9 h-9 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-[--border-subtle] text-zinc-300 font-bold text-lg active:scale-90 flex items-center justify-center cursor-pointer"
+              className="w-9 h-9 rounded-lg bg-muted hover:bg-muted/70 border border-[--border-subtle] text-foreground font-bold text-lg active:scale-90 flex items-center justify-center cursor-pointer"
             >
               −
             </button>
@@ -263,8 +280,8 @@ function FoulsAndTimeouts({
               {team.teamFouls}
             </span>
             <button
-              onClick={() => dispatch({ type: "ADD_TEAM_FOUL", side, delta: 1 })}
-              className="w-9 h-9 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-[--border-subtle] text-zinc-300 font-bold text-lg active:scale-90 flex items-center justify-center cursor-pointer"
+              onClick={() => dispatch({ type: "ADD_TEAM_FOUL", side, delta: +1 })}
+              className="w-9 h-9 rounded-lg bg-muted hover:bg-muted/70 border border-[--border-subtle] text-foreground font-bold text-lg active:scale-90 flex items-center justify-center cursor-pointer"
             >
               +
             </button>
@@ -278,23 +295,23 @@ function FoulsAndTimeouts({
       </div>
 
       {/* Timeouts Control */}
-      <div className="flex flex-col gap-1 bg-zinc-950/5 dark:bg-zinc-950/20 p-2.5 rounded-xl border border-[--border-subtle]">
+      <div className="flex flex-col gap-1 bg-[--bg-surface-2]/40 p-2.5 rounded-xl border border-[--border-subtle]">
         <span className="text-[10px] text-[--text-secondary] font-bold uppercase tracking-wider">Timeouts (TM)</span>
         <div className="flex items-center gap-2 mt-1">
           <button
-            onClick={() => dispatch({ type: "RESTORE_TIMEOUT", side })}
-            className="w-9 h-9 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-[--border-subtle] text-zinc-300 font-bold text-lg active:scale-90 flex items-center justify-center cursor-pointer"
+            onClick={() => dispatch({ type: "USE_TIMEOUT", side })}
+            className="w-9 h-9 rounded-lg bg-muted hover:bg-muted/70 border border-[--border-subtle] text-foreground font-bold text-lg active:scale-90 flex items-center justify-center cursor-pointer"
           >
-            +
+            -
           </button>
           <span className="font-mono text-2xl font-black px-2 text-[--text-primary] tabular-nums">
             {team.timeoutsLeft}
           </span>
           <button
-            onClick={() => dispatch({ type: "USE_TIMEOUT", side })}
-            className="w-9 h-9 rounded-lg bg-amber-600 hover:bg-amber-500 border border-amber-600/10 text-white font-bold text-lg active:scale-90 flex items-center justify-center cursor-pointer"
+            onClick={() => dispatch({ type: "RESTORE_TIMEOUT", side })}
+            className="w-9 h-9 rounded-lg bg-muted hover:bg-muted/70 border border-[--border-subtle] text-foreground font-bold text-lg active:scale-90 flex items-center justify-center cursor-pointer"
           >
-            −
+            +
           </button>
         </div>
       </div>
@@ -317,6 +334,7 @@ function PlayerList({
 
   const handleAdd = () => {
     if (!newNumber.trim()) return;
+    if (team.players.length >= 12) return;
     dispatch({
       type: "ADD_PLAYER",
       side,
@@ -338,32 +356,42 @@ function PlayerList({
   const bench = team.players.filter((p) => !p.onCourt);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
+    <div className="flex flex-col min-h-0 flex-1">
+      <div className="flex items-center justify-between mb-2 shrink-0">
         <span className="text-[10px] text-[--text-secondary] uppercase tracking-wider font-bold">
-          Roster ({team.players.length}) — Terrain: {onCourt.length}/5
+          Roster ({team.players.length}/12) — Terrain: {onCourt.length}/5
         </span>
         <button
-          onClick={() => setShowAdd(!showAdd)}
-          className="text-xs bg-zinc-800 hover:bg-zinc-700/80 border border-[--border-subtle] text-[--text-primary] px-2 py-1 rounded transition-colors cursor-pointer font-semibold"
+          onClick={() => {
+            if (team.players.length < 12) {
+              setShowAdd(!showAdd);
+            }
+          }}
+          disabled={team.players.length >= 12}
+          className={`text-xs px-2 py-1 rounded transition-colors font-semibold ${
+            team.players.length >= 12
+              ? "bg-red-500/10 text-red-500 border border-red-500/20 cursor-not-allowed"
+              : "bg-muted hover:bg-muted/70 border border-[--border-subtle] text-[--text-primary] cursor-pointer"
+          }`}
+          title={team.players.length >= 12 ? "Limite de 12 joueurs atteinte" : "Ajouter un joueur"}
         >
-          + Ajouter
+          {team.players.length >= 12 ? "Roster Plein (12)" : "+ Ajouter"}
         </button>
       </div>
 
       {showAdd && (
-        <div className="flex gap-2 mb-3 bg-zinc-950/10 dark:bg-zinc-950/20 p-2 rounded-lg border border-[--border-subtle]">
+        <div className="flex gap-2 mb-3 bg-[--bg-surface-2]/40 p-2 rounded-lg border border-[--border-subtle] shrink-0">
           <input
             value={newNumber}
             onChange={(e) => setNewNumber(e.target.value)}
-            className="w-16 bg-zinc-900 border border-[--border-default] text-[--text-primary] px-2 py-1 rounded text-sm font-mono font-bold text-center"
+            className="w-16 bg-background border border-input text-[--text-primary] px-2 py-1 rounded text-sm font-mono font-bold text-center"
             placeholder="N°"
             maxLength={2}
           />
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="flex-1 bg-zinc-900 border border-[--border-default] text-[--text-primary] px-2 py-1 rounded text-sm uppercase font-semibold"
+            className="flex-1 bg-background border border-input text-[--text-primary] px-2 py-1 rounded text-sm uppercase font-semibold"
             placeholder="Nom du joueur"
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
           />
@@ -376,9 +404,9 @@ function PlayerList({
         </div>
       )}
 
-      <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
+      <div className="space-y-1 flex-1 min-h-0 overflow-y-auto pr-1">
         {onCourt.map((p) => (
-          <PlayerRow key={p.id} player={p} side={side} dispatch={dispatch} />
+          <PlayerRow key={p.id} player={p} side={side} dispatch={dispatch} courtFull={onCourt.length >= 5} teamColor={team.color} />
         ))}
         {bench.length > 0 && (
           <>
@@ -386,7 +414,7 @@ function PlayerList({
               Banc
             </div>
             {bench.map((p) => (
-              <PlayerRow key={p.id} player={p} side={side} dispatch={dispatch} />
+              <PlayerRow key={p.id} player={p} side={side} dispatch={dispatch} courtFull={onCourt.length >= 5} teamColor={team.color} />
             ))}
           </>
         )}

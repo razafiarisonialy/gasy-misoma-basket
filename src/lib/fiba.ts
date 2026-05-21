@@ -34,12 +34,8 @@ export function getNextPeriod(current: Period): Period {
   return "OT1";
 }
 
-export function getTimeoutsForPeriod(period: Period): { home: number; away: number } {
-  if (typeof period === "number") {
-    if (period <= 2) return { home: 2, away: 2 };
-    return { home: 3, away: 3 };
-  }
-  return { home: 1, away: 1 };
+export function getTimeoutsForPeriod(_period: Period): { home: number; away: number } {
+  return { home: 0, away: 0 };
 }
 
 export function getMaxTimeoutsInQ4(): number {
@@ -65,7 +61,8 @@ export function createDefaultTeam(side: "home" | "away"): Team {
     color: isHome ? "#3b82f6" : "#ef4444",
     score: 0,
     teamFouls: 0,
-    timeoutsLeft: 2,
+    timeoutsLeft: 0,
     players: [],
+    logoUrl: "",
   };
 }
